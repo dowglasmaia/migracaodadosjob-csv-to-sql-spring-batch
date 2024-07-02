@@ -12,7 +12,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 
 
-
 @Configuration
 public class MigracaoDadosJobConfig {
 
@@ -20,34 +19,50 @@ public class MigracaoDadosJobConfig {
     private JobBuilderFactory jobBuilderFactory;
 
     @Bean
-    public Job migracaoDadosJob(
-          Step migrarPessoaStep,
-          Step migrarDadosBancariosStep
-    ){
-        return jobBuilderFactory
-              .get("migracaoDadosJob")
+    public Job migracaoDadosJob(Step migrarPessoaStep, Step migrarDadosBancariosStep){
+        return jobBuilderFactory.get("migracaoDadosJob")
               .incrementer(new RunIdIncrementer())
-              .start(stepsParalelos(migrarPessoaStep,migrarDadosBancariosStep))
+              .start(parallelStepsFlow(migrarPessoaStep, migrarDadosBancariosStep))
               .end()
               .build();
     }
 
+    /**
+     * Define o fluxo de steps que serão executados em paralelo.
+     *
+     * @param migrarPessoaStep         Step para migrar dados de pessoas.
+     * @param migrarDadosBancariosStep Step para migrar dados bancários.
+     * @return Flow que define os steps a serem executados em paralelo.
+     */
+    private Flow parallelStepsFlow(Step migrarPessoaStep, Step migrarDadosBancariosStep){
+        return new FlowBuilder<Flow>("parallelStepsFlow")
+              .split(new SimpleAsyncTaskExecutor())
+              .add(migrarPessoaFlow(migrarPessoaStep), migrarDadosBancariosFlow(migrarDadosBancariosStep))
+              .build();
+    }
 
-    private Flow stepsParalelos(Step migrarPessoaStep, Step migrarDadosBancariosStep){
+    /**
+     * Define o fluxo para o step de migração de dados de pessoas.
+     *
+     * @param migrarPessoaStep Step para migrar dados de pessoas.
+     * @return Flow que envolve o step de migração de dados de pessoas.
+     */
+    private Flow migrarPessoaFlow(Step migrarPessoaStep){
+        return new FlowBuilder<Flow>("migrarPessoaFlow")
+              .start(migrarPessoaStep)
+              .build();
+    }
 
-        Flow migraDadosBancariosFlow = new FlowBuilder<Flow>("migraDadosBancariosFlow")
+    /**
+     * Define o fluxo para o step de migração de dados bancários.
+     *
+     * @param migrarDadosBancariosStep Step para migrar dados bancários.
+     * @return Flow que envolve o step de migração de dados bancários.
+     */
+    private Flow migrarDadosBancariosFlow(Step migrarDadosBancariosStep){
+        return new FlowBuilder<Flow>("migrarDadosBancariosFlow")
               .start(migrarDadosBancariosStep)
               .build();
-
-        Flow stepsParalelos = new FlowBuilder<Flow>("stepsParalelos")
-              .start(migrarPessoaStep)
-              .split(new SimpleAsyncTaskExecutor()) // responsavel por divider o fluxo para ocorer em paralelo
-              .add(migraDadosBancariosFlow)
-              .build();
-
-        return stepsParalelos;
-
-
     }
 
 }
