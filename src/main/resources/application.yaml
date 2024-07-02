@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: MigracaoDadosJob
+  datasource:
+    jdbcUrl: jdbc:postgresql://localhost:5432/dbbatch
+    username: maia
+    password: maiapw
+    driver-class-name: org.postgresql.Driver
+  batch:
+    initialize-schema: always
+
+
+app:
+  datasource:
+    jdbcUrl: jdbc:postgresql://localhost:5432/job-bank
+    username: maia
+    password: maiapw
+    driver-class-name: org.postgresql.Driver
+
+logging:
+  level:
+    org.springframework.batch.item.database: DEBUG
+
